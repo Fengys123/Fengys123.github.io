@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="network," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="浅谈TIME_WAIT在谈TIME_WAIT之前，我们先回顾一下TCP的四次挥手。来上一张熟悉的图。 1. TCP四次挥手TCP终止连接时，主机1（主动关闭方）会先发送FIN包，主机2进入CLOSE_WAIT状态，并且回复一个ACK。此时主机2的应用程序会通过read函数获取到EOF（End Of File），主机2可以调用close或者shutdown函数发起主动关闭操作，调用close或者sh">
+<meta property="og:type" content="article">
+<meta property="og:title" content="浅谈TIME_WAIT">
+<meta property="og:url" content="http://yoursite.com/2020/04/04/%E3%80%90%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E3%80%912.%E6%B5%85%E8%B0%88TIME_WAIT/index.html">
+<meta property="og:site_name" content="FYS">
+<meta property="og:description" content="浅谈TIME_WAIT在谈TIME_WAIT之前，我们先回顾一下TCP的四次挥手。来上一张熟悉的图。 1. TCP四次挥手TCP终止连接时，主机1（主动关闭方）会先发送FIN包，主机2进入CLOSE_WAIT状态，并且回复一个ACK。此时主机2的应用程序会通过read函数获取到EOF（End Of File），主机2可以调用close或者shutdown函数发起主动关闭操作，调用close或者sh">
+<meta property="og:image" content="https://img-blog.csdnimg.cn/20200121102303896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MjU1Nzcy,size_16,color_FFFFFF,t_70">
+<meta property="article:published_time" content="2020-04-04T09:50:46.086Z">
+<meta property="article:modified_time" content="2020-04-04T09:53:10.823Z">
+<meta property="article:author" content="Fys">
+<meta property="article:tag" content="network">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://img-blog.csdnimg.cn/20200121102303896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MjU1Nzcy,size_16,color_FFFFFF,t_70">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Mist',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/2020/04/04/【网络编程】2.浅谈TIME_WAIT/"/>
+
+
+
+
+
+  <title>浅谈TIME_WAIT | FYS</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">FYS</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle"></p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-tags"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-th"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-schedule">
+          <a href="/schedule/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-calendar"></i> <br />
+            
+            日程表
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2020/04/04/%E3%80%90%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E3%80%912.%E6%B5%85%E8%B0%88TIME_WAIT/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="Fys">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.gif">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="FYS">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">浅谈TIME_WAIT</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-04-04T17:50:46+08:00">
+                2020-04-04
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/" itemprop="url" rel="index">
+                    <span itemprop="name">网络编程</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h3 id="浅谈TIME-WAIT"><a href="#浅谈TIME-WAIT" class="headerlink" title="浅谈TIME_WAIT"></a>浅谈TIME_WAIT</h3><p>在谈TIME_WAIT之前，我们先回顾一下TCP的四次挥手。来上一张熟悉的图。<br><img src="https://img-blog.csdnimg.cn/20200121102303896.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM4MjU1Nzcy,size_16,color_FFFFFF,t_70" alt="在这里插入图片描述"></p>
+<h4 id="1-TCP四次挥手"><a href="#1-TCP四次挥手" class="headerlink" title="1. TCP四次挥手"></a>1. TCP四次挥手</h4><p>TCP终止连接时，主机1（主动关闭方）会先发送FIN包，主机2进入CLOSE_WAIT状态，并且回复一个ACK。此时主机2的应用程序会通过read函数获取到EOF（End Of File），主机2可以调用close或者shutdown函数发起主动关闭操作，调用close或者shutdown函数会触发tcp协议栈（内核）向主机1发送FIN包。主机1收到FIN之后，会返回一个ACK应答，之后主机1会进入一个为期2MSL的TIME_WAIT状态。主机2收到ACK后，正常关闭。</p>
+<blockquote>
+<p>在这篇文章中，我们对四次挥手不进行详细介绍，只跟大家聊聊TIME_WAIT。如果对四次挥手想深入的了解，可以关注小编，之后的文章会给大家详细谈谈。</p>
+</blockquote>
+<h4 id="2-TIME-WAIT的时间长度"><a href="#2-TIME-WAIT的时间长度" class="headerlink" title="2. TIME_WAIT的时间长度"></a>2. TIME_WAIT的时间长度</h4><p>首先先介绍一个概念：<strong>MSL</strong>。（最长分节生命期 maximum segment lifetime）MSL指明了TCP报文在Internet上最长生存时间。</p>
+<p>TIME_WAIT状态的时间长度定义为2MSL。在Linux系统中，有一个硬编码的字段，名称为TCP_TIMEWAIT_LEN，其值为固定的60秒。</p>
+<p>在过了这段时间之后，主机1就会自动关闭.</p>
+<blockquote>
+<p>只有主动关闭socket连接的一端，才会有TIME_WAIT这个状态</p>
+</blockquote>
+<h4 id="3-TIME-WAIT的作用以及其带来的影响"><a href="#3-TIME-WAIT的作用以及其带来的影响" class="headerlink" title="3. TIME_WAIT的作用以及其带来的影响"></a>3. TIME_WAIT的作用以及其带来的影响</h4><p>当时设计 TIME_WAIT 考虑到两个方面：</p>
+<ul>
+<li>经过2MSL的时间，足以让两个方向上的分组都被丢弃，使得原来的分组在网络上自然消失。</li>
+</ul>
+<blockquote>
+<p>想象一下这种场景，当一个TCP连接关闭时，还可能会有一些分组会留存在网络中，当新的TCP连接建立起来时，如果和前面TCP连接的四元组是一致的，这些留存在网络中的包，就可能会给新的连接带来困惑。注意，这种情况指的是新TCP连接和旧TCP连接的四元组（源地址，源端口，目的地址，目的端口）一致的情况。如果新旧TCP连接的四元组不一致，则无需考虑这个问题。</p>
+</blockquote>
+<blockquote>
+<p>划重点了。现代Linux对上述这种情况进行了优化，加入了<strong>时间戳</strong>，新建立的TCP的时间戳总比之前建立的时间戳大。再次考虑上述那种场景，当留存在网络中的包（迷失报文）发到新建立起来的TCP的一端时，会由于时间戳小，导致接收端放弃该数据包。所以，迷失报文的问题（考虑一）也就迎刃而解。故你可以认为2MSL和时间戳是迷失报文问题的双重保证。</p>
+</blockquote>
+<blockquote>
+<p>此外还有一个序列号的机制，也对其这个问题进行了保障。新连接的SYN ，一定比 TIME_WAIT 老连接的末序列号大，这样迷失报文到达新连接的一端时，由于序列号比当前TCP连接的初始化序列号小，而被抛弃。</p>
+</blockquote>
+<ul>
+<li>为了使被动关闭方正常关闭。假设主机1没有维护TIME_WAIT状态，直接关闭，当主机2发送FIN包到主机1时，由于主机1已经close了，故主机1只能回复一个RST包，从而导致主机2出现错误。</li>
+</ul>
+<blockquote>
+<p>可以sysctl开启对TCP时间戳的支持。Linux系统默认开启对TCP时间戳的支持。(net.ipv4.tcp_timestamps=1)</p>
+</blockquote>
+<p>TIME_WAIT主要影响有两种：</p>
+<ul>
+<li>对内存资源的占用，这个linux已经进行了优化，基本上可以忽略。说个数据，假设一个服务器有4万个连接进入TIME_WAIT状态时，大概可能会占用不到10M的内存。</li>
+<li>对端口资源的占用。一个TCP连接至少消耗一个本地端口。端口资源也是有限的，一般可以开启的端口为32768~61000，也可以通过设置net.ipv4.ip_local_port_range指定。如果处于TIME_WAIT的TCP连接过多，会占用大量的端口资源。</li>
+</ul>
+<h4 id="4-如何优雅的规避TIME-WAIT带来的副作用"><a href="#4-如何优雅的规避TIME-WAIT带来的副作用" class="headerlink" title="4. 如何优雅的规避TIME_WAIT带来的副作用"></a>4. 如何优雅的规避TIME_WAIT带来的副作用</h4><h5 id="一种暴力的解决方式：net-ipv4-tcp-max-tw-buckets"><a href="#一种暴力的解决方式：net-ipv4-tcp-max-tw-buckets" class="headerlink" title="一种暴力的解决方式：net.ipv4.tcp_max_tw_buckets"></a>一种暴力的解决方式：net.ipv4.tcp_max_tw_buckets</h5><p>该系统值的作用是：当系统中TIME_WAIT连接一旦超过这个值时，系统就会将所有的TIME_WAIT连接状态重置,并且只打印出警告信息。我们可以使用sysctl命令，将系统值调小。</p>
+<blockquote>
+<p>这种方法过于暴力，而且治标不治本，带来的问题远比解决的问题多，不建议使用。</p>
+</blockquote>
+<h5 id="一种较为优雅的解决方式：so-linger的设置"><a href="#一种较为优雅的解决方式：so-linger的设置" class="headerlink" title="一种较为优雅的解决方式：so_linger的设置"></a>一种较为优雅的解决方式：so_linger的设置</h5><p>我们可以通过设置套接字来控制TCP的一些特征。通过下面函数便可以设置套接字选项。（UNIX API提供的一个方法）</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">int</span> <span class="title">setsockopt</span><span class="params">(<span class="keyword">int</span> sockfd, <span class="keyword">int</span> level, <span class="keyword">int</span> optname, <span class="keyword">const</span> <span class="keyword">void</span> *optval,<span class="keyword">socklen_t</span> optlen)</span></span>;</span><br></pre></td></tr></table></figure>
+<p>so_linger是一个套接字选项。其作用是：通过设置该套接字选项，来调控调用close或者shutdown关闭连接时候的行为。</p>
+<p>先分析一下他的数据结构。如下所示。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">linger</span> &#123;</span></span><br><span class="line">	<span class="keyword">int</span> l_onoff;<span class="comment">//开关</span></span><br><span class="line">	<span class="keyword">int</span> l_linger;<span class="comment">//超时时间</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<ul>
+<li><p>当l_onoff设置为0时，则会关闭本套接字选项。（默认如此）</p>
+</li>
+<li><p>当l_onoff设置为非0时，且l_linger为0，则表明关闭连接时（调用了close或者shutdown），会立即发送一个RST给对端，TCP会直接关闭，不会经过四次挥手。（意味着跳过了TIME_WAIT）</p>
+</li>
+<li><p>当l_onoff设置为非0时，且l_linger为非0，则表明关闭连接时（调用了close或者shutdown），close会阻塞直至数据超时或者设置的l_linger时间超时。</p>
+</li>
+</ul>
+<blockquote>
+<p>综上所述，第二种情况可以跳过TIME_WAIT，但是可能会导致数据传输不完全的现象，不值得提倡。</p>
+</blockquote>
+<h5 id="一种更加安全的解决方式：net-ipv4-tcp-tw-reuse"><a href="#一种更加安全的解决方式：net-ipv4-tcp-tw-reuse" class="headerlink" title="一种更加安全的解决方式：net.ipv4.tcp_tw_reuse"></a>一种更加安全的解决方式：net.ipv4.tcp_tw_reuse</h5><ul>
+<li><p>开启该选项时，对应的TIME_WAIT状态的连接创建时间超过1s后才可以被复用。</p>
+</li>
+<li><p>有着局限性，只适用于连接发起方(c/s模型中的客户端)</p>
+</li>
+<li><p>使用这个选项的前提是,需要打开对TCP时间戳的支持（文章前半部分提到过）,即net.ipv4.tcp_timestamps=1(默认即为1)</p>
+</li>
+</ul>
+<blockquote>
+<p>这种方案会在随后的文章中详细探讨，此处大概了解一下。</p>
+</blockquote>
+<h5 id="最佳解决方式：SO-REUSEADDR-套接字选项"><a href="#最佳解决方式：SO-REUSEADDR-套接字选项" class="headerlink" title="最佳解决方式：SO_REUSEADDR 套接字选项"></a>最佳解决方式：SO_REUSEADDR 套接字选项</h5><p>这个套接字的作用是：通过设置SO_REUSEADDR 套接字，通知操作系统内核，新建的TCP连接完全可以复用TIME_WAIT状态的连接。允许启动绑定在一个端口，即使之前存在一个和该端口一 样的连接。其实SO_REUSEADDR还有一些其他的用处后续会有专门一章节进行讲解。具体设置方法如下代码所示。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">int</span> on = <span class="number">1</span>;</span><br><span class="line">setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &amp;on, <span class="keyword">sizeof</span>(on));</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>划重点了。服务端程序都应该设置SO_REUSEADDR套接字选项，来实现服务端程序在极端的时间内复用同一个端口启动。</p>
+</blockquote>
+<p><strong>往期教程：</strong><br><a href="https://blog.csdn.net/qq_38255772/article/details/104055984" target="_blank" rel="noopener">【网络编程】1.开篇序</a></p>
+<blockquote>
+<p>结束语：The TIME_WAIT state is our friend and is there to help us (i.e., to let old duplicate segments expire in the network). Instead of trying to avoid the state, we should understand it.<br>引用至《UNIX网络编程》，翻译一哈：存在即合理，我们要勇于面对，不要逃避。</p>
+</blockquote>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+      <div>
+        <div style="padding: 10px 0; margin: 20px auto; width: 90%; text-align: center;">
+  <div>赏小弟一个鸡腿吧</div>
+  <button id="rewardButton" disable="enable" onclick="var qr = document.getElementById('QR'); if (qr.style.display === 'none') {qr.style.display='block';} else {qr.style.display='none'}">
+    <span>打赏</span>
+  </button>
+  <div id="QR" style="display: none;">
+
+    
+      <div id="wechat" style="display: inline-block">
+        <img id="wechat_qr" src="/images/wechatpay.png" alt="Fys 微信支付"/>
+        <p>微信支付</p>
+      </div>
+    
+
+    
+
+    
+
+  </div>
+</div>
+
+      </div>
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/network/" rel="tag"># network</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2020/04/04/%E3%80%90%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E3%80%911.%E5%BC%80%E7%AF%87%E5%BA%8F/" rel="next" title="开篇序">
+                <i class="fa fa-chevron-left"></i> 开篇序
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <p class="site-author-name" itemprop="name">Fys</p>
+              <p class="site-description motion-element" itemprop="description"></p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives%7C%7C%20archive">
+              
+                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">1</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+            <div class="links-of-author motion-element">
+                
+                  <span class="links-of-author-item">
+                    <a href="https://github.com/Fengys123" target="_blank" title="GitHub">
+                      
+                        <i class="fa fa-fw fa-github"></i>GitHub</a>
+                  </span>
+                
+                  <span class="links-of-author-item">
+                    <a href="mailto:1113014250@qq.com" target="_blank" title="E-Mail">
+                      
+                        <i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+                  </span>
+                
+            </div>
+          
+
+          
+          
+
+          
+          
+            <div class="links-of-blogroll motion-element links-of-blogroll-block">
+              <div class="links-of-blogroll-title">
+                <i class="fa  fa-fw fa-link"></i>
+                Links
+              </div>
+              <ul class="links-of-blogroll-list">
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://blog.csdn.net/qq_38255772" title="一条只会编程的咸鱼（CSDN）" target="_blank">一条只会编程的咸鱼（CSDN）</a>
+                  </li>
+                
+                  <li class="links-of-blogroll-item">
+                    <a href="https://www.jianshu.com/u/3f0c9eec4994" title="飞翔的森（简书）" target="_blank">飞翔的森（简书）</a>
+                  </li>
+                
+              </ul>
+            </div>
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#浅谈TIME-WAIT"><span class="nav-number">1.</span> <span class="nav-text">浅谈TIME_WAIT</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#1-TCP四次挥手"><span class="nav-number">1.1.</span> <span class="nav-text">1. TCP四次挥手</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-TIME-WAIT的时间长度"><span class="nav-number">1.2.</span> <span class="nav-text">2. TIME_WAIT的时间长度</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#3-TIME-WAIT的作用以及其带来的影响"><span class="nav-number">1.3.</span> <span class="nav-text">3. TIME_WAIT的作用以及其带来的影响</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#4-如何优雅的规避TIME-WAIT带来的副作用"><span class="nav-number">1.4.</span> <span class="nav-text">4. 如何优雅的规避TIME_WAIT带来的副作用</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#一种暴力的解决方式：net-ipv4-tcp-max-tw-buckets"><span class="nav-number">1.4.1.</span> <span class="nav-text">一种暴力的解决方式：net.ipv4.tcp_max_tw_buckets</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#一种较为优雅的解决方式：so-linger的设置"><span class="nav-number">1.4.2.</span> <span class="nav-text">一种较为优雅的解决方式：so_linger的设置</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#一种更加安全的解决方式：net-ipv4-tcp-tw-reuse"><span class="nav-number">1.4.3.</span> <span class="nav-text">一种更加安全的解决方式：net.ipv4.tcp_tw_reuse</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#最佳解决方式：SO-REUSEADDR-套接字选项"><span class="nav-number">1.4.4.</span> <span class="nav-text">最佳解决方式：SO_REUSEADDR 套接字选项</span></a></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">Fys</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Mist</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/canvas-nest/canvas-nest.min.js"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+
+</body>
+</html>
