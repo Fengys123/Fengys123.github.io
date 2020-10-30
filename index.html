@@ -362,8 +362,11 @@
 一、递归思路：自顶向下思考。按照往常写出递归公式，终止条件和代码。
 
 递归公式：f(index, c) = Math.max( f(index-1, c),  v[index] + f(index-1, c-w[index]) );
+
 终止条件：if(index &lt; 0 || c &lt;= 0)     return 0;
-代码：（java版本）1234567891011121314
+
+代码：（java版本）
+  12345678910111
           ...
           <!--noindex-->
           <div class="post-button text-center">
@@ -1673,7 +1676,7 @@ TTCP协议这里关于传输协议，可以设计两个结构体
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">3</span>
+                  <span class="site-state-item-count">5</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
