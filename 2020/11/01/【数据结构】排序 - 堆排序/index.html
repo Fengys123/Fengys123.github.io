@@ -75,7 +75,7 @@
 
 
 
-  <meta name="keywords" content="算法,排序," />
+  <meta name="keywords" content="算法,排序,堆," />
 
 
 
@@ -86,17 +86,18 @@
 
 
 
-<meta name="description" content="堆的定义：  堆是一个完全二叉树 堆的每一个节点的值都必须大于等于（或者小于等于）其子树的每个节点的值。  堆的存储  完全二叉树适合用数组进行存储，（用数组存储可以节省空间）所以堆可以用数组进行存储。我们不需要存储左右子节点的指针，可以通过数组的下标，就可以找到一个节点的子节点以及父节点。  之前提到的排序算法  时间复杂度为O(n^2)的冒泡排序，插入排序，选择排序。 时间复杂度为O(nlog">
+<meta name="description" content="堆的定义： 堆是一个完全二叉树 堆的每一个节点的值都必须大于等于（或者小于等于）其子树的每个节点的值。  堆的存储（适合用数组） 完全二叉树适合用数组进行存储，所以堆可以用数组进行存储。我们不需要存储左右子节点的指针，可以通过数组的下标，就可以找到一个节点的子节点以及父节点。 从数组的下标为1开始存储的话，下标为i的节点的左子节点的下标为2 * i，右子节点的下标为2 * i + 1，父亲节点为i">
 <meta property="og:type" content="article">
 <meta property="og:title" content="排序 - 堆排序">
 <meta property="og:url" content="http://yoursite.com/2020/11/01/%E3%80%90%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E3%80%91%E6%8E%92%E5%BA%8F%20-%20%E5%A0%86%E6%8E%92%E5%BA%8F/index.html">
 <meta property="og:site_name" content="FYS">
-<meta property="og:description" content="堆的定义：  堆是一个完全二叉树 堆的每一个节点的值都必须大于等于（或者小于等于）其子树的每个节点的值。  堆的存储  完全二叉树适合用数组进行存储，（用数组存储可以节省空间）所以堆可以用数组进行存储。我们不需要存储左右子节点的指针，可以通过数组的下标，就可以找到一个节点的子节点以及父节点。  之前提到的排序算法  时间复杂度为O(n^2)的冒泡排序，插入排序，选择排序。 时间复杂度为O(nlog">
+<meta property="og:description" content="堆的定义： 堆是一个完全二叉树 堆的每一个节点的值都必须大于等于（或者小于等于）其子树的每个节点的值。  堆的存储（适合用数组） 完全二叉树适合用数组进行存储，所以堆可以用数组进行存储。我们不需要存储左右子节点的指针，可以通过数组的下标，就可以找到一个节点的子节点以及父节点。 从数组的下标为1开始存储的话，下标为i的节点的左子节点的下标为2 * i，右子节点的下标为2 * i + 1，父亲节点为i">
 <meta property="article:published_time" content="2020-11-01T12:39:07.692Z">
-<meta property="article:modified_time" content="2020-11-02T06:39:26.738Z">
+<meta property="article:modified_time" content="2020-11-02T13:00:12.691Z">
 <meta property="article:author" content="Fys">
 <meta property="article:tag" content="算法">
 <meta property="article:tag" content="排序">
+<meta property="article:tag" content="堆">
 <meta name="twitter:card" content="summary">
 
 
@@ -364,32 +365,37 @@
       
 
       
-        <p>堆的定义：</p>
-<ul>
+        <h2 id="堆的定义："><a href="#堆的定义：" class="headerlink" title="堆的定义："></a>堆的定义：</h2><ul>
 <li>堆是一个完全二叉树</li>
 <li>堆的每一个节点的值都必须大于等于（或者小于等于）其子树的每个节点的值。</li>
 </ul>
-<p>堆的存储</p>
-<ul>
-<li>完全二叉树适合用数组进行存储，（用数组存储可以节省空间）所以堆可以用数组进行存储。我们不需要存储左右子节点的指针，可以通过数组的下标，就可以找到一个节点的子节点以及父节点。</li>
+<h2 id="堆的存储（适合用数组）"><a href="#堆的存储（适合用数组）" class="headerlink" title="堆的存储（适合用数组）"></a>堆的存储（适合用数组）</h2><ul>
+<li>完全二叉树适合用数组进行存储，所以堆可以用数组进行存储。我们不需要存储左右子节点的指针，可以通过数组的下标，就可以找到一个节点的子节点以及父节点。</li>
+<li>从数组的下标为1开始存储的话，下标为i的节点的左子节点的下标为2 * i，右子节点的下标为2 * i + 1，父亲节点为i/2。</li>
 </ul>
-<p>之前提到的排序算法</p>
-<ul>
-<li>时间复杂度为O(n^2)的冒泡排序，插入排序，选择排序。</li>
-<li>时间复杂度为O(nlogn)的归并排序，快速排序。</li>
-<li>还有线性排序。</li>
-</ul>
+<h2 id="堆的代码实现"><a href="#堆的代码实现" class="headerlink" title="堆的代码实现"></a>堆的代码实现</h2><p>对外提供两个函数</p>
+<ol>
+<li>insert：在堆中插入一个element。</li>
+<li>removeMax：移除堆顶，并将最后一位移到堆顶，然后进行堆化。</li>
+</ol>
+<p>代码实现</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><span class="line">public class Heap &#123;</span><br><span class="line">    private int[] elements;</span><br><span class="line">    private int maxSize;</span><br><span class="line">    private int count;</span><br><span class="line"></span><br><span class="line">    public Heap(int capacity) &#123;</span><br><span class="line">        this.elements &#x3D; new int[capacity + 1];</span><br><span class="line">        this.maxSize &#x3D; capacity;</span><br><span class="line">        this.count &#x3D; 0;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void insert(int data) &#123;</span><br><span class="line">        if (count &gt;&#x3D; maxSize)   return;</span><br><span class="line">        count++;</span><br><span class="line">        elements[count] &#x3D; data;</span><br><span class="line">        int i &#x3D; count;</span><br><span class="line">        while (i&#x2F;2 &gt; 0 &amp;&amp; elements[i] &gt; elements[i&#x2F;2]) &#123;</span><br><span class="line">            swap(elements, i, i&#x2F;2);</span><br><span class="line">            i &#x3D; i&#x2F;2;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    public void removeMax() &#123;</span><br><span class="line">        if (count &#x3D;&#x3D; 0)     return;</span><br><span class="line">        elements[1] &#x3D; elements[count];</span><br><span class="line">        count--;</span><br><span class="line">        heapify(elements, count, 1);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private static void heapify(int[] elements, int count, int index) &#123;</span><br><span class="line">        while (true) &#123;</span><br><span class="line">            int maxIndex &#x3D; index;</span><br><span class="line">            if (index * 2 &lt;&#x3D; count &amp;&amp; elements[index] &lt; elements[index * 2]) &#123;</span><br><span class="line">                maxIndex &#x3D; index * 2;</span><br><span class="line">            &#125;</span><br><span class="line">            if (index * 2 + 1 &lt;&#x3D; count &amp;&amp; elements[maxIndex] &lt; elements[index * 2 + 1]) &#123;</span><br><span class="line">                maxIndex &#x3D; index * 2 + 1;</span><br><span class="line">            &#125;</span><br><span class="line">            if (maxIndex &#x3D;&#x3D; index)  break;</span><br><span class="line">            swap(elements, index, maxIndex);</span><br><span class="line">            index &#x3D; maxIndex;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private static void swap(int[] a, int b, int c) &#123;</span><br><span class="line">        int temp &#x3D; a[b];</span><br><span class="line">        a[b] &#x3D; a[c];</span><br><span class="line">        a[c] &#x3D; temp;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
 <h2 id="堆排序"><a href="#堆排序" class="headerlink" title="堆排序"></a>堆排序</h2><p>时间复杂度非常稳定，为O(nlogn)，也是原地排序算法，不是稳定的排序算法。</p>
 <p>对排序的步骤</p>
 <ol>
 <li>建堆<ul>
-<li>第一种方案：</li>
-<li>第二种方案：</li>
+<li>第一种方案：将数组中元素依次插入到堆内。</li>
+<li>第二种方案：由叶子节点向上逐渐堆化。</li>
 <li>建堆的时间复杂度是O(n)</li>
 </ul>
 </li>
 <li>排序</li>
 </ol>
+<p>代码实现</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><span class="line">public class HeapSort &#123;</span><br><span class="line">    public static void sort(int[] data, int size) &#123;</span><br><span class="line">        buildHeap(data, size);</span><br><span class="line">        heapSort(data, size);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private static void buildHeap(int[] data, int size) &#123;</span><br><span class="line">        for (int i &#x3D; size&#x2F;2 -1 ; i &gt;&#x3D; 0 ; i--) &#123;</span><br><span class="line">            heapify(data, size, i);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private static void heapSort(int[] data, int size) &#123;</span><br><span class="line">        int tempSize &#x3D; size;</span><br><span class="line">        while (tempSize &gt; 0) &#123;</span><br><span class="line">            swap(data, 0, tempSize - 1);</span><br><span class="line">            tempSize--;</span><br><span class="line">            heapify(data, tempSize, 0);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private static void heapify(int[] data, int size, int index) &#123;</span><br><span class="line">        while (true) &#123;</span><br><span class="line">            int maxIndex &#x3D; index;</span><br><span class="line">            if (index * 2 + 1 &lt; size &amp;&amp; data[index] &lt; data[index * 2 + 1]) &#123;</span><br><span class="line">                maxIndex &#x3D; index * 2 + 1;</span><br><span class="line">            &#125;</span><br><span class="line">            if (index * 2 + 2 &lt; size &amp;&amp; data[maxIndex] &lt; data[index * 2 + 2]) &#123;</span><br><span class="line">                maxIndex &#x3D; index * 2 + 2;</span><br><span class="line">            &#125;</span><br><span class="line">            if (maxIndex &#x3D;&#x3D; index)  break;</span><br><span class="line">            swap(data, index, maxIndex);</span><br><span class="line">            index &#x3D; maxIndex;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    private static void swap(int[] data, int b, int c) &#123;</span><br><span class="line">        int temp &#x3D; data[b];</span><br><span class="line">        data[b] &#x3D; data[c];</span><br><span class="line">        data[c] &#x3D; temp;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
 <h2 id="问题：在实际开发中，为什么快排比堆排序好。"><a href="#问题：在实际开发中，为什么快排比堆排序好。" class="headerlink" title="问题：在实际开发中，为什么快排比堆排序好。"></a>问题：在实际开发中，为什么快排比堆排序好。</h2><ul>
 <li>堆排序数据访问的方式没有快速排序友好。对于快排，数据是顺序访问，而堆排序是跳着访问，对CPU缓存不友好。</li>
 <li>对于同样的数据，在排序过程中，堆排序的数据交换次数明显高于快排。</li>
@@ -438,6 +444,8 @@
             <a href="/tags/%E7%AE%97%E6%B3%95/" rel="tag"># 算法</a>
           
             <a href="/tags/%E6%8E%92%E5%BA%8F/" rel="tag"># 排序</a>
+          
+            <a href="/tags/%E5%A0%86/" rel="tag"># 堆</a>
           
         </div>
       
@@ -567,7 +575,7 @@
               
               <div class="site-state-item site-state-tags">
                 <a href="/tags/index.html">
-                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-count">9</span>
                   <span class="site-state-item-name">标签</span>
                 </a>
               </div>
@@ -634,7 +642,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#堆排序"><span class="nav-number">1.</span> <span class="nav-text">堆排序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#问题：在实际开发中，为什么快排比堆排序好。"><span class="nav-number">2.</span> <span class="nav-text">问题：在实际开发中，为什么快排比堆排序好。</span></a></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#堆的定义："><span class="nav-number">1.</span> <span class="nav-text">堆的定义：</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#堆的存储（适合用数组）"><span class="nav-number">2.</span> <span class="nav-text">堆的存储（适合用数组）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#堆的代码实现"><span class="nav-number">3.</span> <span class="nav-text">堆的代码实现</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#堆排序"><span class="nav-number">4.</span> <span class="nav-text">堆排序</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#问题：在实际开发中，为什么快排比堆排序好。"><span class="nav-number">5.</span> <span class="nav-text">问题：在实际开发中，为什么快排比堆排序好。</span></a></li></ol></div>
             
 
           </div>
