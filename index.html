@@ -360,10 +360,7 @@
           
           Redis整个项目是以makefile进行构建的，调试的话需要使用gdb。可是笔者用惯了idea的那种调试方式，所以今天尝试着用CMake构建Redis，并导入Clion中。下面记录一下的历程。
 在开始之前，你需要确保开发环境。如果windows，笔者建议使用Clion + wsl，Linux，用Clion即可，Mac太穷买不起，不了解。此外还需要c的编译环境。此处不做叙述，感兴趣的同学可以自行Google。
-Let us start！
-直接在Clion中使用git拉取Redis的源码，并将分支切换到redis6.0。
-将下面的5个CMakeLists.txt文件放入项目中相应的位置。
-Rel
+Let us start！1. 直接在Clion中使用git拉取Redis的源码，并将分支切换到redis6.0。2. 将下面的5个CMakeLists.txt文件放入项目中相应的位置。
           ...
           <!--noindex-->
           <div class="post-button text-center">
