@@ -93,7 +93,7 @@
 <meta property="og:site_name" content="FYS">
 <meta property="og:description" content="Rust 的错误处理与众不同，在 Rust 中有两种错误处理方法：Panic 和 Result。 使用 Result 处理普通错误。Result 通常代表由程序外部的事物引发的错误，比如，错误的输入、网络问题或者权限问题等等。这种错误情况的的发生并不取决于我们，即使一个没有 bug 的程序，我们也会时不时遇到它们。 Panic 针对的是另外的一种错误，而这种错误 应该 永远不会发生（但并不代表它不">
 <meta property="article:published_time" content="2022-06-11T14:57:18.566Z">
-<meta property="article:modified_time" content="2022-06-11T14:58:18.952Z">
+<meta property="article:modified_time" content="2022-06-11T15:05:18.880Z">
 <meta property="article:author" content="Fys">
 <meta name="twitter:card" content="summary">
 
@@ -379,46 +379,7 @@
 <p>当 rust 在第一次 panic 后，如果 drop 方法触发了第二次 panic，这将是致命的。 Rust 会停止 unwinding，并且终止整个进程。</p>
 <p>另外，Rust panic 的行为也可以自定义。如果编译时加入“-C panic=abort”，那么当你的程序发生第一个 panic 时，整个进程就会停止。（当加入该参数编译时，Rust 并不需要知道如何 unwind the stack，所以，这样做可以减少编译产物的大小）</p>
 <p>我们对 Rust 中 panic 的讨论到此结束。确实没什么好说的，因为普通的 Rust 代码没有义务去处理 panic。即使你使用了线程和 catch_unwind()，你的 panic 的处理代码很有可能会集中到一起。期望程序中每个函数都可以去预测和处理代码中的错误是不合理的。</p>
-<h2 id="Note"><a href="#Note" class="headerlink" title="Note"></a>Note</h2><p>git 地址：<a href="https://github.com/Fengys123/err_handleRust" target="_blank" rel="noopener">https://github.com/Fengys123/err_handleRust</a> 的错误处理与众不同，在 Rust 中有两种错误处理方法：<strong>Panic</strong> 和 <strong>Result</strong>。</p>
-<p>使用 <strong>Result</strong> 处理普通错误。<strong>Result</strong> 通常代表由程序外部的事物引发的错误，比如，错误的输入、网络问题或者权限问题等等。这种错误情况的的发生并不取决于我们，即使一个没有 bug 的程序，我们也会时不时遇到它们。</p>
-<p><strong>Panic</strong> 针对的是另外的一种错误，而这种错误 <strong>应该</strong> 永远不会发生（但并不代表它不会发生）。</p>
-<p>本章将介绍一下 <strong>Panic</strong>。</p>
-<h1 id="Panic-1"><a href="#Panic-1" class="headerlink" title="Panic"></a>Panic</h1><p>当一个程序遇到一些问题发生 panic。在这种情况下，程序本身必定存在一个 bug。比如说：</p>
-<ol>
-<li>越界的数组访问</li>
-<li>除 0 操作</li>
-<li>在恰好是 Err 的 Result 上调用 .expect()</li>
-<li>断言失败</li>
-<li>panic macro</li>
-</ol>
-<p>上述这些条件都有一个共同的特点：都是程序员的错。所以一个好的经验法则是：不要 panic。</p>
-<p>但是我们总会犯错。当这些不应该发生的错误发生时，然后呢？ Rust 给了我们一个选择。当程序 panic 时，我们既可以 <strong>展开堆栈（unwind the stack）</strong>，也可以 <strong>中止进程（abort the process）</strong>。默认是 <strong>展开堆栈（unwind the stack）</strong>。</p>
-<h2 id="Unwinding-1"><a href="#Unwinding-1" class="headerlink" title="Unwinding"></a>Unwinding</h2><p>当海盗瓜分战利品时，船长获得一半的战利品，普通船员平均分掉另一半的战利品。（海盗讨厌分数，如果除法除不尽，结果会向下取整，余数交给船上的鹦鹉保管）</p>
-<figure class="highlight rust"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">fn</span> <span class="title">pirate_share</span></span>(total: <span class="built_in">u64</span>, crew_size: <span class="built_in">usize</span>) -&gt; <span class="built_in">u64</span> &#123;</span><br><span class="line">    <span class="keyword">let</span> half = total / <span class="number">2</span>;</span><br><span class="line">    half / crew_size <span class="keyword">as</span> <span class="built_in">u64</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>这个方法可能会正常工作很久很久，直到有一天海盗只剩下了船长一个人。</p>
-<p>假设我们向这个函数中传入 crew_size = 0 时，就会产生 <strong>除 0 操作</strong>。在 c++ 中，<strong>除 0 操作</strong> 是未定义操作（undefined behavior）。在 Rust 中，通常会触发 panic，如下进行：</p>
-<ul>
-<li><p>一个错误信息会打印到终端</p>
-  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">thread &#39;main&#39; panicked at &#39;attempt to divide by zero&#39;, examples&#x2F;panic.rs:7:5</span><br><span class="line">note: run with &#96;RUST_BACKTRACE&#x3D;1&#96; environment variable to display a backtrace</span><br></pre></td></tr></table></figure>
-<p>  如果你按照错误信息的提示，设置了 RUST_BACKTRACE 环境变量，Rust 将会 dump stack。</p>
-  <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">thread &#39;main&#39; panicked at &#39;attempt to divide by zero&#39;, examples&#x2F;panic.rs:7:5</span><br><span class="line">stack backtrace:</span><br><span class="line">   0: rust_begin_unwind</span><br><span class="line">             at &#x2F;rustc&#x2F;34a6c9f26e2ce32cad0d71f5e342365b09f4d12c&#x2F;library&#x2F;std&#x2F;src&#x2F;panicking.rs:584:5</span><br><span class="line">   1: core::panicking::panic_fmt</span><br><span class="line">             at &#x2F;rustc&#x2F;34a6c9f26e2ce32cad0d71f5e342365b09f4d12c&#x2F;library&#x2F;core&#x2F;src&#x2F;panicking.rs:142:14</span><br><span class="line">   2: core::panicking::panic</span><br><span class="line">             at &#x2F;rustc&#x2F;34a6c9f26e2ce32cad0d71f5e342365b09f4d12c&#x2F;library&#x2F;core&#x2F;src&#x2F;panicking.rs:48:5</span><br><span class="line">   3: panic::pirate_share</span><br><span class="line">             at .&#x2F;examples&#x2F;panic.rs:7:5</span><br><span class="line">   4: panic::main</span><br><span class="line">             at .&#x2F;examples&#x2F;panic.rs:2:5</span><br><span class="line">   5: core::ops::function::FnOnce::call_once</span><br><span class="line">             at &#x2F;rustc&#x2F;34a6c9f26e2ce32cad0d71f5e342365b09f4d12c&#x2F;library&#x2F;core&#x2F;src&#x2F;ops&#x2F;function.rs:248:5</span><br><span class="line">note: Some details are omitted, run with &#96;RUST_BACKTRACE&#x3D;full&#96; for a verbose backtrace.</span><br></pre></td></tr></table></figure></li>
-<li><p>栈已经被展开。这有点像 c++ 的异常处理（exception handling）。</p>
-<p>  当前函数正在使用的任何<strong>临时变量</strong>，<strong>局部变量</strong>或者<strong>参数</strong>都将被 drop 掉。drop 的顺序与创建的顺序正好相反。而在 pirate_share() 这个特殊的例子中，没有什么可以清理的。</p>
-<p>  一旦完成当前函数调用的清理工作，我们就转到其调用者，以同样的方式进行清理。然后再移动到该函数的调用者，以此类推。</p>
-</li>
-<li><p>最后，这个线程退出了。如果 panic 的是主线程，那么整个程序都会退出（exit code 不为 0）。</p>
-</li>
-</ul>
-<p>也许 panic 是一个带有误导性的名称。Panic 不是 crash，也不是未定义行为（undefined behavior）。Panic 更像是 Java 中的 <strong>RuntimeException</strong> 或 C++ 中的 <strong>std::logic_error</strong>。Panic 的行为是明确定义的；它不应该发生。</p>
-<p>Panic 是<strong>安全</strong>的。它不违反 Rust 的任何安全规则，即使你设法在标准库方法的中间 panic，它也不会在内存中留下悬垂指针或者半初始化的值。这个实现的想法大致是，在任何不好的事情发生之前， Rust 会捕获无效的数组访问，或者一些其他的错误。 继续执行下去是不安全的，所以 Rust 将会展开堆栈（unwind the stack）。 但该进程的其余部分可以继续运行。</p>
-<p>Panic is pre thread。一个线程 panic 时，其他线程仍然可以正常的处理他们的业务。</p>
-<p>还有一种方法可以捕获 stack unwinding，并允许线程存活且可以继续运行。标准库提供了一个方法做这件事情：<strong>std::panic::catch_unwind()</strong>。Rust 测试工具在遇到断言失败时恢复线程，便用到了它。在 c/c++ 中调用 Rust 代码时，可能也需要它，因为 unwind no-rust code 是未定义行为。</p>
-<p>理想状态下，我们将会拥有永不 panic 的 bug-free 代码。但是人并不是完美的。您可以使用线程和catch_unwind() 来处理 panic，使程序更加健壮。<strong>NOTE</strong>，catch_unwind() 只能捕获 unwind stack 形式的 panic。 并非所有 panic 都以这种方式进行。</p>
-<h2 id="Aborting-1"><a href="#Aborting-1" class="headerlink" title="Aborting"></a>Aborting</h2><p>Stack unwinding 是默认的 panic 行为，但是在 Rust 中有两种情况，并不会 unwind the stack。</p>
-<p>当 rust 在第一次 panic 后，如果 drop 方法触发了第二次 panic，这将是致命的。 Rust 会停止 unwinding，并且终止整个进程。</p>
-<p>另外，Rust panic 的行为也可以自定义。如果编译时加入“-C panic=abort”，那么当你的程序发生第一个 panic 时，整个进程就会停止。（当加入该参数编译时，Rust 并不需要知道如何 unwind the stack，所以，这样做可以减少编译产物的大小）</p>
-<p>我们对 Rust 中 panic 的讨论到此结束。确实没什么好说的，因为普通的 Rust 代码没有义务去处理 panic。即使你使用了线程和 catch_unwind()，你的 panic 的处理代码很有可能会集中到一起。期望程序中每个函数都可以去预测和处理代码中的错误是不合理的。</p>
-<h2 id="Note-1"><a href="#Note-1" class="headerlink" title="Note"></a>Note</h2><p>git 地址：<a href="https://github.com/Fengys123/err_handle" target="_blank" rel="noopener">https://github.com/Fengys123/err_handle</a></p>
+<h2 id="Note"><a href="#Note" class="headerlink" title="Note"></a>Note</h2><p>git 地址：<a href="https://github.com/Fengys123/err_handle" target="_blank" rel="noopener">https://github.com/Fengys123/err_handle</a></p>
 
       
     </div>
@@ -647,7 +608,7 @@
             
 
             
-              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Panic"><span class="nav-number">1.</span> <span class="nav-text">Panic</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Unwinding"><span class="nav-number">1.1.</span> <span class="nav-text">Unwinding</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Aborting"><span class="nav-number">1.2.</span> <span class="nav-text">Aborting</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Note"><span class="nav-number">1.3.</span> <span class="nav-text">Note</span></a></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#Panic-1"><span class="nav-number">2.</span> <span class="nav-text">Panic</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Unwinding-1"><span class="nav-number">2.1.</span> <span class="nav-text">Unwinding</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Aborting-1"><span class="nav-number">2.2.</span> <span class="nav-text">Aborting</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Note-1"><span class="nav-number">2.3.</span> <span class="nav-text">Note</span></a></li></ol></li></ol></div>
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#Panic"><span class="nav-number">1.</span> <span class="nav-text">Panic</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#Unwinding"><span class="nav-number">1.1.</span> <span class="nav-text">Unwinding</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Aborting"><span class="nav-number">1.2.</span> <span class="nav-text">Aborting</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Note"><span class="nav-number">1.3.</span> <span class="nav-text">Note</span></a></li></ol></li></ol></div>
             
 
           </div>
